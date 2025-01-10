@@ -1,4 +1,4 @@
-package org.example;
+package com.galiglobal;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -21,7 +21,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-class App {
+class OutputParser {
 
   private static final String RESET = "\033[0m"; // Text Reset
   private static final String RED = "\033[0;31m"; // RED
@@ -34,6 +34,8 @@ class App {
   private static final String MODEL = "mistral";
   private static final String BASE_URL = "http://localhost:11434";
   private static Duration timeout = Duration.ofSeconds(120);
+
+  private static String terminalOutput = "";
 
   public static void main(String[] args) {
 
@@ -52,7 +54,7 @@ class App {
 
     if (output.isEmpty()) {
       System.out.println("No input provided. Exiting.");
-      System.exit(1);
+      output = "Error: no output generated.";
     }
 
     ChatMemory memory = MessageWindowChatMemory.withMaxMessages(3);
@@ -72,6 +74,15 @@ class App {
                                 JsonObjectSchema.builder()
                                     .addEnumProperty("result", List.of("SUCCESS", "ERROR"))
                                     .addStringProperty("summary", "Short summary of the output")
+                                    .addStringProperty(
+                                        "file",
+                                        "Name of the class that has the error. Optional if there's"
+                                            + " no errors or failed tests")
+                                    .addIntegerProperty(
+                                        "line",
+                                        "Number of the line where the error happened. It's usually"
+                                            + " the number after the name of the class and a color."
+                                            + " Optional if there's no errors or failed tests")
                                     .required("result", "summary")
                                     .build())
                             .build())
@@ -81,25 +92,27 @@ class App {
     memory.add(
         SystemMessage.from(
             """
-The user is going to provide the output of a command, it's usually a compiler, linter, formatter or the execution of programming tests. You should provide a summary of 3 lines, no blank lines between them or numbers in the beginning.
+The user is going to provide the output of a command, it's usually a compiler,
+linter, formatter or the execution of programming tests. You should provide a
+summary of 3 lines, no blank lines between them or numbers in the beginning.
 """));
 
     memory.add(UserMessage.from(output));
     CompletableFuture<Response<AiMessage>> futureResponse = new CompletableFuture<>();
+
     model.generate(
         memory.messages(),
         new StreamingResponseHandler<AiMessage>() {
 
           @Override
           public void onNext(String token) {
-            System.out.print(token.replace("ERROR", ERROR).replace("SUCCESS", SUCCESS));
+            terminalOutput = terminalOutput + token;
           }
 
           @Override
           public void onComplete(Response<AiMessage> response) {
             memory.add(response.content());
             futureResponse.complete(response);
-            System.out.println();
           }
 
           @Override
@@ -109,6 +122,19 @@ The user is going to provide the output of a command, it's usually a compiler, l
         });
 
     futureResponse.join();
+
+    String[] lines = terminalOutput.split("\n");
+    for (int i = 1; i < lines.length - 1; i++) {
+      String trimmedLine = lines[i].trim();
+      System.out.println(trimmedLine.replace("ERROR", ERROR).replace("SUCCESS", SUCCESS));
+    }
+
+    try (FileWriter file = new FileWriter("/tmp/output.json")) {
+      file.write(terminalOutput);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
     System.exit(0);
   }
 }
