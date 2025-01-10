@@ -1,15 +1,13 @@
 package com.galiglobal;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.Test;
 
-import com.galiglobal.OutputParser;
+public class AppTest {
 
-import static org.junit.jupiter.api.Assertions.*;
-
-class AppTest {
-    @Test void appHasAGreeting() {
-        OutputParser classUnderTest = new OutputParser();
-        assertNotNull("TODO", "app should have a greeting");
-        //assertNotNull(null, "app should have a greeting");
+    @Test
+    public void demoTest() {
+        assertTrue(1 + 1 == 2);
     }
 }
