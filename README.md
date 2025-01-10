@@ -8,7 +8,7 @@ language model to generate a more human-readable output, store the original
 output in `/tmp/output.log` and the processed output in `/tmp/processed.json` so
 it can be used by other applications (e.g. NeoVim).
 
-![Demo Video](demo.mov)
+https://github.com/user-attachments/assets/4dd385c5-4717-436a-8728-677ac546d911
 
 ## Requirements
 
